@@ -76,15 +76,19 @@ object TpchQuery {
 
   def main(args: Array[String]): Unit = {
 
-    var queryNum = 0;
-    if (args.length > 0)
-      queryNum = args(0).toInt
+    val INPUT_DIR = args(0)
+    val queryNums = if (args.length > 1) {
+      args.slice(1, args.length).map(_.toInt)
+    } else {
+      (1 to 22).toArray 
+    }
+    println(s"Will run ${queryNums.mkString(" ")}")
 
     val conf = new SparkConf().setAppName("Simple Application")
     val sc = new SparkContext(conf)
 
     // read files from local FS
-    val INPUT_DIR = "file://" + new File(".").getAbsolutePath() + "/dbgen"
+    // val INPUT_DIR = "file://" + new File(".").getAbsolutePath() + "/dbgen"
 
     // read from hdfs
     // val INPUT_DIR: String = "/dbgen"
@@ -92,7 +96,10 @@ object TpchQuery {
     val schemaProvider = new TpchSchemaProvider(sc, INPUT_DIR)
 
     val output = new ListBuffer[(String, Float)]
-    output ++= executeQueries(sc, schemaProvider, queryNum)
+    for (queryNum <- queryNums) {
+      output ++= executeQueries(sc, schemaProvider, queryNum)
+      println(s"----------------$queryNum finished--------------------")
+    }
 
     val outFile = new File("TIMES.txt")
     val bw = new BufferedWriter(new FileWriter(outFile, true))
