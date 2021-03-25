@@ -42,11 +42,11 @@ object TpchQuery {
       df.write.mode("overwrite").format("com.databricks.spark.csv").option("header", "true").save(outputDir + "/" + className)
   }
 
-  def executeQueries(sc: SparkContext, schemaProvider: TpchSchemaProvider, queryNum: Int): ListBuffer[(String, Float)] = {
+  def executeQueries(sc: SparkContext, schemaProvider: TpchSchemaProvider, queryNum: Int, outputDir: String): ListBuffer[(String, Float)] = {
 
     // if set write results to hdfs, if null write to stdout
-    // val OUTPUT_DIR: String = "/tpch"
-    val OUTPUT_DIR: String = "file://" + new File(".").getAbsolutePath() + "/dbgen/output"
+    // val OUTPUT_DIR: String = "hdfs://172.168.10.103/tmp/output"
+    // val OUTPUT_DIR: String = "file://" + new File(".").getAbsolutePath() + "/dbgen/output"
 
     val results = new ListBuffer[(String, Float)]
 
@@ -62,7 +62,7 @@ object TpchQuery {
 
       val query = Class.forName(f"main.scala.Q${queryNo}%02d").newInstance.asInstanceOf[TpchQuery]
 
-      outputDF(query.execute(sc, schemaProvider), OUTPUT_DIR, query.getName())
+      outputDF(query.execute(sc, schemaProvider), outputDir, query.getName())
 
       val t1 = System.nanoTime()
 
@@ -76,9 +76,10 @@ object TpchQuery {
 
   def main(args: Array[String]): Unit = {
 
-    val INPUT_DIR = args(0)
-    val queryNums = if (args.length > 1) {
-      args.slice(1, args.length).map(_.toInt)
+    val inputDir = args(0)
+    val outputDir = args(1)
+    val queryNums = if (args.length > 2) {
+      args.slice(2, args.length).map(_.toInt)
     } else {
       (1 to 22).toArray 
     }
@@ -93,11 +94,11 @@ object TpchQuery {
     // read from hdfs
     // val INPUT_DIR: String = "/dbgen"
 
-    val schemaProvider = new TpchSchemaProvider(sc, INPUT_DIR)
+    val schemaProvider = new TpchSchemaProvider(sc, inputDir)
 
     val output = new ListBuffer[(String, Float)]
     for (queryNum <- queryNums) {
-      output ++= executeQueries(sc, schemaProvider, queryNum)
+      output ++= executeQueries(sc, schemaProvider, queryNum, outputDir)
       println(s"----------------$queryNum finished--------------------")
     }
 
